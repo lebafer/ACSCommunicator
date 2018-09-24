@@ -1,0 +1,6 @@
+framework module Pods_ACSCommunicatorTests {
+  umbrella header "Pods-ACSCommunicatorTests-umbrella.h"
+
+  export *
+  module * { export * }
+}

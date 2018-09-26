@@ -9,7 +9,7 @@
 import Foundation
 import SwiftyJSON
 //**************************************************************************
-//Function to a valid Token from ACS ***************************************
+//Get a valid Token from ACS ***********************************************
 //**************************************************************************
 public func getToken(username: String, password: String, callback:@escaping (_ token: String?, _ error: Error?)->()) {
     let bodyData: String = "scope=acs_webservice&client_id=10TVL0SAM30000004901DSLHILFEAPP000000000&grant_type=password&username=\(username)&password=\(password)"
@@ -32,7 +32,7 @@ public func getToken(username: String, password: String, callback:@escaping (_ t
     task.resume()
 }
 //**************************************************************************
-//Function to change Wifi State ********************************************
+//Set WiFi status ( True / False ) *****************************************
 //**************************************************************************
 public func setWifi(token: String, status: String, secret: String, callback:@escaping (_ okString: String?)->()){
     let bodyData: String = "flag=\(status)"
@@ -53,24 +53,9 @@ public func setWifi(token: String, status: String, secret: String, callback:@esc
     task.resume()
 }
 //**************************************************************************
-//Function to check status of settings from Router *************************
+//CHeck if WiFi is on or off ***********************************************
 //**************************************************************************
-public func disableButton(button: UIButton) {
-    DispatchQueue.main.async {
-        button.isEnabled = false
-        button.backgroundColor = UIColor.gray
-    }
-}
-public func enableButton(button: UIButton) {
-    DispatchQueue.main.async {
-        button.isEnabled = true
-        button.backgroundColor = UIColor(red: 226/255, green: 0/255, blue: 116/255, alpha: 1.0)
-    }
-}
-//**************************************************************************
-//Function to Information about the router *********************************
-//**************************************************************************
-public func checkSettings(token: String, secret: String, callback:@escaping ( _ wifi24IsOn: Bool?) -> () ) {
+public func checkWifi(token: String, secret: String, callback:@escaping ( _ wifi24IsOn: Bool?) -> () ) {
     var wifi24IsOn: Bool?
     var url = URLComponents(string: "https://einrichten-vtu.telekom-dienste.de:44300/acs/api/rs/device/property/get")!
     url.queryItems = [
@@ -87,10 +72,8 @@ public func checkSettings(token: String, secret: String, callback:@escaping ( _ 
             let JSONwifiIsON24 = json!["result"][0]["value"].string
             if JSONwifiIsON24 == "UP"{
                 wifi24IsOn = true
-                print(JSONwifiIsON24!)
             } else if JSONwifiIsON24 == "Down" {
                 wifi24IsOn = false
-                print(JSONwifiIsON24!)
             }
             callback(wifi24IsOn)
         }
@@ -100,7 +83,6 @@ public func checkSettings(token: String, secret: String, callback:@escaping ( _ 
     }
     checkSettingsTask.resume()
 }
-
 //**************************************************************************
 //Function get Router information ******************************************
 //**************************************************************************
@@ -121,7 +103,7 @@ public func getInformation(token: String, secret: String, callback:@escaping (_ 
             if download != nil && upload != nil && mediumType != nil {
                 callback(download!, upload!, mediumType!)
             }else {
-                print("nil")
+                print("ACS Antwortet nicht!")
             }
         }
         if let error = error {
@@ -130,6 +112,9 @@ public func getInformation(token: String, secret: String, callback:@escaping (_ 
     }
     infoTask.resume()
 }
+//**************************************************************************
+//Get WLan-SSID ************************************************************
+//**************************************************************************
 public func getSSID(token: String, secret: String, callback:@escaping(_ ssid: String) -> () ){
     var ssidUrl = URLComponents(string: "https://einrichten-vtu.telekom-dienste.de:44300/acs/api/rs/device/property/get")!
     ssidUrl.queryItems = [ URLQueryItem(name: "names", value: "[\"Device.WiFi.SSID.1.SSID\"]") ]
@@ -141,9 +126,30 @@ public func getSSID(token: String, secret: String, callback:@escaping(_ ssid: St
         if let data = data {
             let json = try? JSON(data: data)
             let ssid = json!["result"][0]["value"].string
-            print("SSID in Function ---> \(ssid!)")
             callback(ssid!)
         }
     }
     ssidTast.resume()
 }
+//**************************************************************************
+//Set password & SSID ******************************************************
+//**************************************************************************
+public func setCredentials(token: String, setSSID: String, setPassword: String, secret: String, callback:@escaping (_ okString: String?)->()){
+    let bodyData: String = "ssid=\(setSSID)&key=\(setPassword)"
+    var req = URLRequest(url: URL(string: "https://einrichten-vtu.telekom-dienste.de:44300/acs/api/rs/device/wifi/change")!)
+    req.addValue(secret, forHTTPHeaderField: "secret")
+    req.addValue(token, forHTTPHeaderField: "token")
+    req.httpMethod = "POST"
+    req.httpBody = bodyData.data(using: .utf8)
+    let session = URLSession(configuration: .default)
+    let task = session.dataTask(with: req){ (data, response, error) in
+        if let data = data {
+            let json = try? JSON(data: data)
+            if let okString = json!["result"].string {
+                callback(okString)
+            }
+        }
+    }
+    task.resume()
+}
+
